@@ -1,3 +1,5 @@
+// ✅ FIX 1: Add the declaration at the top
+// declare let Live2DCubismCore: any;
 /**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
@@ -7,6 +9,12 @@
 
 import { CubismRenderer } from './rendering/cubismrenderer';
 import { CubismLogInfo, CubismLogWarning } from './utils/cubismdebug';
+
+// ✅ FIX 2: Add the definite assignment assertion (!) to the class properties
+export class Option {
+  logFunction!: (message: string) => void;
+  loggingLevel!: LogLevel;
+}
 
 // ファイルスコープの変数を初期化
 

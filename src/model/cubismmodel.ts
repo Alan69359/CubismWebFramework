@@ -1,3 +1,4 @@
+// declare let Live2DCubismCore: any;
 /**
  * Copyright(c) Live2D Inc. All rights reserved.
  *

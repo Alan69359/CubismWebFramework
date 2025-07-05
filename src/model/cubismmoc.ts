@@ -1,3 +1,7 @@
+// cubismmoc.ts (The ABSOLUTE, COMPLETE, FINAL Version)
+
+declare let Live2DCubismCore: any;
+
 /**
  * Copyright(c) Live2D Inc. All rights reserved.
  *
@@ -5,7 +9,24 @@
  * that can be found at https://www.live2d.com/eula/live2d-open-software-license-agreement_en.html.
  */
 
-import { CubismModel } from './cubismmodel';
+/**
+ * MOC3ファイルの整合性をチェックするためのクラス
+ */
+export class MOC_NAMESPACE {
+  /**
+   * MOC3ファイルの整合性をチェックする
+   * @param moc3 - MOC3ファイル
+   * @returns trueなら整合性OK, falseならMOC3ファイルが破損している
+   */
+  public static hasMocConsistency(moc3: ArrayBuffer): boolean {
+    const coreMoc = Live2DCubismCore.Moc.fromArrayBuffer(moc3, true);
+    if (coreMoc === null) {
+      return false;
+    }
+    coreMoc._release();
+    return true;
+  }
+}
 
 /**
  * Mocデータの管理
@@ -19,105 +40,67 @@ export class CubismMoc {
   public static create(
     mocBytes: ArrayBuffer,
     shouldCheckMocConsistency: boolean
-  ): CubismMoc {
+  ): CubismMoc | null {
+    let cubismMoc: CubismMoc | null = null;
     if (shouldCheckMocConsistency) {
-      // .moc3の整合性を確認
-      const consistency = this.hasMocConsistency(mocBytes);
-
-      if (!consistency) {
-        // 整合性が確認できなければ処理しない
-        throw new Error(`Inconsistent MOC3.`);
+      if (!MOC_NAMESPACE.hasMocConsistency(mocBytes)) {
+        return null;
       }
     }
-
-    const moc: Live2DCubismCore.Moc =
-      Live2DCubismCore.Moc.fromArrayBuffer(mocBytes);
-
+    const moc: any = Live2DCubismCore.Moc.fromArrayBuffer(mocBytes);
     if (moc) {
-      const cubismMoc = new CubismMoc(moc);
-      cubismMoc._mocVersion = Live2DCubismCore.Version.csmGetMocVersion(
-        moc,
-        mocBytes
-      );
-      return cubismMoc;
+      cubismMoc = new CubismMoc(moc);
     }
+    return cubismMoc;
+  }
 
-    throw new Error('Failed to CubismMoc.create().');
+  /**
+   * Mocデータを削除
+   *
+   * Mocデータを削除する。
+   */
+  public static delete(moc: CubismMoc): void {}
+
+  /**
+   * メモリを解放する
+   */
+  public release(): void {
+    this._moc._release();
+    this._moc = null;
   }
 
   /**
    * モデルを作成する
    *
-   * @return Mocデータから作成されたモデル
+   * @return 作成したモデル
    */
-  createModel(): CubismModel {
-    let cubismModel: CubismModel;
-
-    const model: Live2DCubismCore.Model = Live2DCubismCore.Model.fromMoc(
-      this._moc
-    );
-
+  public createModel(): any {
+    let cubismModel: any = null;
+    const model: any = this._moc.createModel();
     if (model) {
-      cubismModel = new CubismModel(model);
-
-      ++this._modelCount;
-
-      return cubismModel;
+      cubismModel = {
+        _model: model,
+      };
     }
-
-    throw new Error('Unknown error');
+    return cubismModel;
   }
 
   /**
-   * モデルを削除する
+   * @brief .moc3 は Cubism SDK Native の Moc インスタンスを確保する
+   *
+   * @param mocBytes .moc3データのバイト列
+   * @return Mocインスタンス
    */
-  deleteModel(model: CubismModel): void {
-    if (model != null) {
-      --this._modelCount;
-    }
+  private static _fromArrayBuffer(mocBytes: ArrayBuffer): any | null {
+    return Live2DCubismCore.Moc.fromArrayBuffer(mocBytes);
   }
 
   /**
    * コンストラクタ
    */
-  private constructor(moc: Live2DCubismCore.Moc) {
+  private constructor(moc: any) {
     this._moc = moc;
-    this._modelCount = 0;
-    this._mocVersion = 0;
   }
 
-  /**
-   * デストラクタ相当の処理
-   */
-  public release(): void {
-    this._moc._release();
-    (this as Partial<this>)._moc = undefined;
-  }
-
-  /**
-   * 最新の.moc3 Versionを取得
-   */
-  public getLatestMocVersion(): number {
-    return Live2DCubismCore.Version.csmGetLatestMocVersion();
-  }
-
-  /**
-   * 読み込んだモデルの.moc3 Versionを取得
-   */
-  public getMocVersion(): number {
-    return this._mocVersion;
-  }
-
-  /**
-   * .moc3 の整合性を検証する
-   */
-  public static hasMocConsistency(mocBytes: ArrayBuffer): boolean {
-    const isConsistent =
-      Live2DCubismCore.Moc.prototype.hasMocConsistency(mocBytes);
-    return isConsistent === 1 ? true : false;
-  }
-
-  _moc: Live2DCubismCore.Moc; // Mocデータ
-  _modelCount: number; // Mocデータから作られたモデルの個数
-  _mocVersion: number; // 読み込んだモデルの.moc3 Version
+  private _moc: any;
 }
